@@ -159,6 +159,10 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   const endExam = useCallback(() => {
     if (currentStage !== 'running') return; // Chỉ có tác dụng khi đang thi
     isEndingRef.current = true;
+    
+    // Mở lại nút Qua bài để giám khảo ấn xác nhận hoàn tất
+    setHasPassed(false);
+    
     onSpeak?.('Kết thúc bài thi đường trường', true);
   }, [currentStage, onSpeak]);
 
@@ -208,8 +212,11 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
 
     // 3. Rung Haptic mức Heavy (rung dài theo SYSTEM_DESIGN.md)
     onVibrate?.('heavy');
+    
+    // 4. Khóa nút "Qua bài" (vì đánh lỗi cũng coi như đã hoàn thành bài thi đó)
+    setHasPassed(true);
 
-    // 4. Thêm vào log vi phạm với timestamp
+    // 5. Thêm vào log vi phạm với timestamp
     const newLog: ViolationLog = {
       id: `violation_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       label,

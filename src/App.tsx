@@ -164,19 +164,28 @@ const ErrorGridSection = memo(({ currentStage, triggerError }: { currentStage: E
         <div className="section-header-line" />
       </div>
 
-      <div className="error-grid">
-        {ERROR_BUTTONS.map(btn => (
-          <button
-            key={btn.id}
-            id={`btn-error-${btn.id}`}
-            className="btn-error"
-            onClick={() => triggerError(btn.points, btn.label)}
-            disabled={currentStage !== 'running'}
-            aria-label={`Lỗi: ${btn.label} - trừ ${btn.points} điểm`}
-          >
-            <span>{btn.shortLabel || btn.label}</span>
-            <span className="btn-error-points">-{btn.points}đ</span>
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {['Xuất phát', 'Động cơ & Số', 'Lưu thông', 'Đình chỉ thi'].map(cat => (
+          <div key={cat}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {cat}
+            </div>
+            <div className="error-grid">
+              {ERROR_BUTTONS.filter(b => b.category === cat).map(btn => (
+                <button
+                  key={btn.id}
+                  id={`btn-error-${btn.id}`}
+                  className="btn-error"
+                  onClick={() => triggerError(btn.points, btn.label)}
+                  disabled={currentStage !== 'running'}
+                  aria-label={`Lỗi: ${btn.label} - trừ ${btn.points} điểm`}
+                >
+                  <span>{btn.shortLabel || btn.label}</span>
+                  <span className="btn-error-points">-{btn.points}đ</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
