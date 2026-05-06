@@ -144,10 +144,10 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
         ? `Chúc mừng bạn đã thi đạt. Số điểm của bạn là ${prevScore} điểm.`
         : `Bạn thi không đạt. Số điểm của bạn là ${prevScore} điểm. Hãy cố gắng hơn.`;
 
-      // Đọc kết quả với độ trễ nhỏ để tránh xung đột âm thanh
+      // Đọc kết quả với độ trễ nhỏ để tránh xung đột âm thanh, KHÔNG ngắt âm thanh đang đọc (priority = false)
       setTimeout(() => {
-        onSpeak?.(resultText, true); 
-      }, 300);
+        onSpeak?.(resultText, false); 
+      }, 500);
 
       return prevScore; 
     });
