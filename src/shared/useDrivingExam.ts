@@ -183,49 +183,60 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   // ==========================================
   // ACTION: Ghi nhận lỗi vi phạm - CORE FUNCTION
   // ==========================================
+  // Ref để lưu lỗi vừa bấm và thời điểm bấm
+  const lastErrorRef = useRef<{ label: string, time: number } | null>(null);
+
   /**
    * Ghi nhận lỗi vi phạm và thực hiện đồng thời:
    * 1. Trừ điểm ngay lập tức
-   * 2. Phát âm thanh tên lỗi (ưu tiên cao, ngắt âm thanh khác)
-   * 3. Rung Haptic mức Heavy
-   * 4. Thêm vào log với timestamp
-   *
-   * GUARD: isProcessingError đảm bảo không trừ điểm 2 lần trong 500ms
+   * 2. Phát âm thanh tên lỗi
+   * 3. Rung Haptic
+   * 4. Thêm vào log
    */
   const triggerError = useCallback((points: number, label: string) => {
-    // Guard chống double-tap: bỏ qua nếu đang xử lý lỗi trước đó
+    const now = Date.now();
+
+    // Guard 1: Chống bấm 2 lỗi bất kỳ quá nhanh (double tap chung trong 500ms)
     if (isProcessingError.current) {
-      console.warn(`[useDrivingExam] Bỏ qua lỗi "${label}" - đang xử lý lỗi trước đó`);
       return;
     }
-    // Chỉ xử lý lỗi khi đang thi
+
+    // Guard 2: KHÔNG cho bấm cùng 1 lỗi liên tục 2 lần trong vòng 3 giây
+    if (lastErrorRef.current && lastErrorRef.current.label === label) {
+      if (now - lastErrorRef.current.time < 3000) {
+        console.warn(`[useDrivingExam] Chặn bấm lỗi "${label}" liên tục 2 lần`);
+        return; // Bỏ qua nếu bấm trùng lỗi cũ quá nhanh
+      }
+    }
+
     if (currentStage !== 'running') return;
 
-    // Kích hoạt guard
+    // Cập nhật lỗi vừa bấm
+    lastErrorRef.current = { label, time: now };
     isProcessingError.current = true;
 
     // 1. Trừ điểm ngay lập tức (không âm)
     setScore((prevScore: number) => Math.max(EXAM_CONFIG.MIN_SCORE, prevScore - points));
 
-    // 2. Phát âm thanh tên lỗi (priority: ngắt âm thanh đang phát)
+    // 2. Phát âm thanh tên lỗi
     onSpeak?.(label, true);
 
-    // 3. Rung Haptic mức Heavy (rung dài theo SYSTEM_DESIGN.md)
+    // 3. Rung Haptic
     onVibrate?.('heavy');
     
-    // 4. Khóa nút "Qua bài" (vì đánh lỗi cũng coi như đã hoàn thành bài thi đó)
+    // 4. Khóa nút "Qua bài"
     setHasPassed(true);
 
-    // 5. Thêm vào log vi phạm với timestamp
+    // 5. Thêm vào log
     const newLog: ViolationLog = {
-      id: `violation_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `violation_${now}_${Math.random().toString(36).slice(2, 7)}`,
       label,
       points,
-      timestamp: Date.now(),
+      timestamp: now,
     };
-    setViolationLogs((prev: ViolationLog[]) => [newLog, ...prev]); // Thêm vào đầu danh sách (mới nhất trên cùng)
+    setViolationLogs((prev: ViolationLog[]) => [newLog, ...prev]);
 
-    // Giải phóng guard sau 500ms
+    // Giải phóng guard chung sau 500ms
     setTimeout(() => {
       isProcessingError.current = false;
     }, 500);
