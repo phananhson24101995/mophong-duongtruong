@@ -1,0 +1,126 @@
+/**
+ * @file types.ts
+ * @description Các kiểu dữ liệu dùng chung (Shared Types) cho hệ thống Sát hạch Đường trường Pro.
+ * Được sử dụng bởi cả Web (Vite/React) và Mobile (Expo).
+ */
+
+// ==========================================
+// TRẠNG THÁI THI
+// ==========================================
+export type ExamStage =
+  | 'idle'      // Chờ khởi động
+  | 'running'   // Đang thi
+  | 'finished'; // Đã kết thúc
+
+// ==========================================
+// BẢN GHI LỖI VI PHẠM
+// ==========================================
+export interface ViolationLog {
+  id: string;           // UUID duy nhất của bản ghi
+  label: string;        // Tên lỗi (VD: "Không thắt dây an toàn")
+  points: number;       // Số điểm bị trừ
+  timestamp: number;    // Unix timestamp (ms) khi lỗi xảy ra
+}
+
+// ==========================================
+// ĐỊNH NGHĨA NÚT LỖI
+// ==========================================
+export interface ErrorButton {
+  id: string;       // ID định danh nút
+  label: string;    // Nhãn hiển thị
+  points: number;   // Điểm bị trừ khi nhấn
+  shortLabel?: string; // Nhãn ngắn cho mobile
+}
+
+// ==========================================
+// ĐỊNH NGHĨA HÀNH ĐỘNG BÀI THI
+// ==========================================
+export interface ExamAction {
+  id: string;       // ID định danh hành động
+  label: string;    // Nhãn hiển thị
+  type: 'start' | 'end' | 'command'; // Loại hành động
+  audioText?: string; // Văn bản đọc khi nhấn (nếu có)
+}
+
+// ==========================================
+// TRẠNG THÁI HOOK useDrivingExam
+// ==========================================
+export interface DrivingExamState {
+  candidateId: string;        // Số báo danh thí sinh
+  score: number;              // Điểm hiện tại (0-100)
+  currentStage: ExamStage;    // Giai đoạn thi hiện tại
+  violationLogs: ViolationLog[]; // Danh sách vi phạm
+  isPassed: boolean;          // Kết quả: Đạt hay Không đạt
+  elapsedTime: number;        // Thời gian thi (giây)
+}
+
+// ==========================================
+// HÀNH ĐỘNG HOOK useDrivingExam
+// ==========================================
+export interface DrivingExamActions {
+  setCandidateId: (id: string) => void;           // Cập nhật số báo danh
+  startExam: () => void;                          // Bắt đầu thi
+  endExam: () => void;                            // Kết thúc thi
+  triggerError: (points: number, label: string) => void; // Ghi nhận lỗi vi phạm
+  resetExam: () => void;                          // Đặt lại trạng thái
+  triggerCommand: (text: string) => void;         // Đọc lệnh tùy ý
+  triggerPass: () => void;                        // Đánh dấu qua bài (phát âm Tu)
+}
+
+// ==========================================
+// CẤU HÌNH HỆ THỐNG
+// ==========================================
+export const EXAM_CONFIG = {
+  MAX_SCORE: 100,     // Điểm tối đa
+  PASS_SCORE: 80,     // Điểm đạt
+  MIN_SCORE: 0,       // Điểm thấp nhất (không âm)
+  VOICE_RATE: 1.1,    // Tốc độ đọc giọng nói
+  VOICE_LANG: 'vi-VN', // Ngôn ngữ giọng nói
+} as const;
+
+// ==========================================
+// DANH SÁCH LỖI PHỔ BIẾN (12 LỖI CHUẨN)
+// ==========================================
+export const ERROR_BUTTONS: ErrorButton[] = [
+  { id: 'err_seatbelt',    label: 'Không thắt dây an toàn', shortLabel: 'Dây an toàn', points: 5 },
+  { id: 'err_handbrake',   label: 'Quên nhả phanh tay',     shortLabel: 'Phanh tay',   points: 5 },
+  { id: 'err_signal',      label: 'Không bật xi nhan',       shortLabel: 'Xi nhan',     points: 5 },
+  { id: 'err_stall',       label: 'Chết máy',                shortLabel: 'Chết máy',    points: 5 },
+  { id: 'err_horn',        label: 'Bấm còi (Tun)',           shortLabel: 'Tun',         points: 5 },
+  { id: 'err_speed',       label: 'Quá tốc độ',              shortLabel: 'Quá tốc',     points: 10 },
+  { id: 'err_lane',        label: 'Lấn làn đường',           shortLabel: 'Lấn làn',     points: 10 },
+  { id: 'err_stop_sign',   label: 'Không dừng tại vạch',     shortLabel: 'Vạch dừng',   points: 10 },
+  { id: 'err_mirror',      label: 'Không quan sát gương',    shortLabel: 'Gương chiếu', points: 5 },
+  { id: 'err_gear',        label: 'Nhầm số',                 shortLabel: 'Nhầm số',     points: 5 },
+  { id: 'err_clutch',      label: 'Nhả ly hợp đột ngột',     shortLabel: 'Ly hợp',      points: 5 },
+  { id: 'err_distance',    label: 'Không giữ khoảng cách',   shortLabel: 'Khoảng cách', points: 5 },
+];
+
+// ==========================================
+// DANH SÁCH HÀNH ĐỘNG BÀI THI
+// ==========================================
+export const EXAM_ACTIONS: ExamAction[] = [
+  {
+    id: 'action_start',
+    label: 'Xuất phát',
+    type: 'start',
+    audioText: 'Bắt đầu bài thi đường trường',
+  },
+  {
+    id: 'action_gear_up',
+    label: 'Tăng số',
+    type: 'command',
+    audioText: 'Tăng số',
+  },
+  {
+    id: 'action_gear_down',
+    label: 'Giảm số',
+    type: 'command',
+    audioText: 'Giảm số',
+  },
+  {
+    id: 'action_end',
+    label: 'Kết thúc',
+    type: 'end',
+  },
+];
