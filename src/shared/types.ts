@@ -51,6 +51,7 @@ export interface DrivingExamState {
   currentStage: ExamStage;    // Giai đoạn thi hiện tại
   violationLogs: ViolationLog[]; // Danh sách vi phạm
   isPassed: boolean;          // Kết quả: Đạt hay Không đạt
+  hasPassed: boolean;         // Đã nhấn qua bài hay chưa
   elapsedTime: number;        // Thời gian thi (giây)
 }
 

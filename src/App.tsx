@@ -234,7 +234,8 @@ const ControlPadSection = memo(({
   endExam,
   triggerPass,
   triggerCommand,
-  resetExam
+  resetExam,
+  hasPassed
 }: {
   currentStage: ExamStage;
   candidateId: string;
@@ -243,6 +244,7 @@ const ControlPadSection = memo(({
   triggerPass: () => void;
   triggerCommand: (text: string) => void;
   resetExam: () => void;
+  hasPassed: boolean;
 }) => {
   return (
     <div>
@@ -278,21 +280,7 @@ const ControlPadSection = memo(({
           <div className="btn-sublabel">Tổng kết điểm</div>
         </button>
 
-        {/* Nút Qua bài - Đánh dấu hoàn thành một bài nhỏ */}
-        <button
-          id="btn-pass-stage"
-          className="btn-exam col-span-2"
-          onClick={triggerPass}
-          disabled={currentStage !== 'running'}
-          aria-label="Qua bài - phát âm thanh Tu"
-          style={{ borderColor: 'rgba(168,85,247,0.4)', backgroundColor: 'rgba(168,85,247,0.12)', color: '#d8b4fe' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon.CheckCircle />
-            <span className="btn-label" style={{ color: '#d8b4fe' }}>Qua bài</span>
-          </div>
-          <div className="btn-sublabel" style={{ color: '#e9d5ff' }}>Âm thanh Tu</div>
-        </button>
+
 
         {/* Nút Tăng số */}
         <button
@@ -316,6 +304,22 @@ const ControlPadSection = memo(({
         >
           <div className="btn-icon"><Icon.ArrowDown /></div>
           <div className="btn-label">Giảm số</div>
+        </button>
+
+        {/* Nút Qua bài - Đánh dấu hoàn thành một bài nhỏ */}
+        <button
+          id="btn-pass-stage"
+          className="btn-exam col-span-2"
+          onClick={triggerPass}
+          disabled={currentStage !== 'running' || hasPassed}
+          aria-label="Qua bài"
+          style={{ borderColor: 'rgba(168,85,247,0.4)', backgroundColor: 'rgba(168,85,247,0.12)', color: '#d8b4fe' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon.CheckCircle />
+            <span className="btn-label" style={{ color: '#d8b4fe' }}>Qua bài</span>
+          </div>
+          <div className="btn-sublabel" style={{ color: '#e9d5ff' }}>Âm thanh Tu</div>
         </button>
 
         {/* Nút Reset - Full width */}
@@ -484,6 +488,7 @@ export default function App() {
           triggerPass={exam.triggerPass}
           triggerCommand={exam.triggerCommand}
           resetExam={exam.resetExam}
+          hasPassed={exam.hasPassed}
         />
 
         {/* -- Khu vực 2: Grid 3 cột - Nút lỗi (White/Border Red) -- */}

@@ -67,12 +67,17 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   const [currentStage, setCurrentStage] = useState<ExamStage>('idle');
   const [violationLogs, setViolationLogs] = useState<ViolationLog[]>([]);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [hasPassed, setHasPassed] = useState<boolean>(false);
 
   // ==========================================
   // REFS - Không trigger re-render
   // ==========================================
   // Guard chống double-tap (nhấn 2 lần nhanh)
   const isProcessingError = useRef<boolean>(false);
+  // REF: Đánh dấu đang chờ xác nhận kết thúc bằng nút Qua bài
+  const isEndingRef = useRef<boolean>(false);
+  // REF: Guard cho nút Qua bài
+  const isProcessingPass = useRef<boolean>(false);
   // Ref timer đếm thời gian thi
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -124,15 +129,15 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   }, [currentStage, onPlayStart, onSpeak]);
 
   // ==========================================
-  // ACTION: Kết thúc thi
+  // ACTION: Xử lý Kết thúc thực sự (Tính điểm)
   // ==========================================
-  const endExam = useCallback(() => {
-    if (currentStage !== 'running') return; // Chỉ kết thúc khi đang thi
+  const finishExam = useCallback(() => {
+    if (currentStage !== 'running') return;
 
     setCurrentStage('finished');
+    isEndingRef.current = false;
 
     // Tính điểm và đọc kết quả
-    // Sử dụng functional update để lấy score mới nhất
     setScore((prevScore: number) => {
       const passed = prevScore >= EXAM_CONFIG.PASS_SCORE;
       const resultText = passed
@@ -141,11 +146,20 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
 
       // Đọc kết quả với độ trễ nhỏ để tránh xung đột âm thanh
       setTimeout(() => {
-        onSpeak?.(resultText, true); // priority=true để ngắt mọi âm thanh đang phát
+        onSpeak?.(resultText, true); 
       }, 300);
 
-      return prevScore; // Không thay đổi score
+      return prevScore; 
     });
+  }, [currentStage, onSpeak]);
+
+  // ==========================================
+  // ACTION: Bấm nút Kết thúc (Chờ xác nhận)
+  // ==========================================
+  const endExam = useCallback(() => {
+    if (currentStage !== 'running') return; // Chỉ có tác dụng khi đang thi
+    isEndingRef.current = true;
+    onSpeak?.('Kết thúc bài thi đường trường', true);
   }, [currentStage, onSpeak]);
 
   // ==========================================
@@ -156,11 +170,11 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
       // Dùng một timeout nhỏ để đảm bảo âm thanh lỗi vi phạm phát trước,
       // sau đó âm thanh trượt sẽ đè lên hoặc nối tiếp (bằng priority)
       const timeout = setTimeout(() => {
-        endExam();
+        finishExam();
       }, 500);
       return () => clearTimeout(timeout);
     }
-  }, [score, currentStage, endExam]);
+  }, [score, currentStage, finishExam]);
 
   // ==========================================
   // ACTION: Ghi nhận lỗi vi phạm - CORE FUNCTION
@@ -215,6 +229,10 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   // ==========================================
   const triggerCommand = useCallback((text: string) => {
     if (currentStage !== 'running') return;
+    
+    // Khi giám khảo phát lệnh mới (Bài tiếp theo), cho phép bấm lại nút Qua bài
+    setHasPassed(false);
+
     onPlayBeep?.(); // Phát "Bíp" trước lệnh
     setTimeout(() => {
       onSpeak?.(text);
@@ -225,9 +243,25 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
   // ACTION: Đánh dấu qua bài
   // ==========================================
   const triggerPass = useCallback(() => {
-    if (currentStage !== 'running') return;
+    if (currentStage !== 'running' || hasPassed) return;
+    if (isProcessingPass.current) return;
+
+    isProcessingPass.current = true;
+    setHasPassed(true); // Disable nút Qua bài vĩnh viễn cho đến khi reset
     onPlayTu?.(); // Phát âm Tu
-  }, [currentStage, onPlayTu]);
+    
+    // Nếu đang trong trạng thái chờ kết thúc, thì hoàn tất bài thi
+    if (isEndingRef.current) {
+      setTimeout(() => {
+        finishExam();
+      }, 500); // Đợi tiếng Tu dứt rồi đọc kết quả
+    } else {
+      // Nhả guard sau 1 giây
+      setTimeout(() => {
+        isProcessingPass.current = false;
+      }, 1000);
+    }
+  }, [currentStage, hasPassed, onPlayTu, finishExam]);
 
   // ==========================================
   // ACTION: Đặt lại trạng thái thi
@@ -239,6 +273,9 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     setViolationLogs([]);
     setElapsedTime(0);
     isProcessingError.current = false;
+    isProcessingPass.current = false;
+    isEndingRef.current = false;
+    setHasPassed(false);
   }, []);
 
   // ==========================================
@@ -250,8 +287,10 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     score,
     currentStage,
     violationLogs,
-    isPassed,
     elapsedTime,
+    isPassed: score >= EXAM_CONFIG.PASS_SCORE,
+    hasPassed, // Export hasPassed state
+    
     // Actions
     setCandidateId,
     startExam,
