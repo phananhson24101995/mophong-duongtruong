@@ -4,7 +4,7 @@
  * Kết nối shared hook useDrivingExam với Web Audio Engine.
  * Layout: Dashboard (điểm số) + Control Pad (2 grid khu vực)
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
 // Import từ shared module (copy vào src/shared để Vite resolve được)
 import { useDrivingExam } from './shared/useDrivingExam';
 import { webAudioEngine } from './shared/useAudioEngine.web';
@@ -17,50 +17,50 @@ import type { ExamStage } from './shared/types';
 const Icon = {
   Play: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polygon points="5 3 19 12 5 21 5 3"/>
+      <polygon points="5 3 19 12 5 21 5 3" />
     </svg>
   ),
   Stop: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
     </svg>
   ),
   ArrowUp: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="18 15 12 9 6 15"/>
+      <polyline points="18 15 12 9 6 15" />
     </svg>
   ),
   ArrowDown: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="6 9 12 15 18 9"/>
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   ),
   Reset: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.94"/>
+      <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-4.94" />
     </svg>
   ),
   Alert: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2L2 20h20L12 2zm0 3l7 13H5L12 5zm-1 4v4h2V9h-2zm0 6v2h2v-2h-2z"/>
+      <path d="M12 2L2 20h20L12 2zm0 3l7 13H5L12 5zm-1 4v4h2V9h-2zm0 6v2h2v-2h-2z" />
     </svg>
   ),
   Clock: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
     </svg>
   ),
   Trophy: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-      <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
     </svg>
   ),
   CheckCircle: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   ),
 };
@@ -154,6 +154,189 @@ function VoiceStatus() {
 }
 
 // ==========================================
+// COMPONENT: ErrorGridSection (Memoized)
+// ==========================================
+const ErrorGridSection = memo(({ currentStage, triggerError }: { currentStage: ExamStage, triggerError: (points: number, label: string) => void }) => {
+  return (
+    <div>
+      <div className="section-header">
+        <span className="section-header-title">Ghi nhận lỗi vi phạm</span>
+        <div className="section-header-line" />
+      </div>
+
+      <div className="error-grid">
+        {ERROR_BUTTONS.map(btn => (
+          <button
+            key={btn.id}
+            id={`btn-error-${btn.id}`}
+            className="btn-error"
+            onClick={() => triggerError(btn.points, btn.label)}
+            disabled={currentStage !== 'running'}
+            aria-label={`Lỗi: ${btn.label} - trừ ${btn.points} điểm`}
+          >
+            <span>{btn.shortLabel || btn.label}</span>
+            <span className="btn-error-points">-{btn.points}đ</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+// ==========================================
+// COMPONENT: ViolationLogSection (Memoized)
+// ==========================================
+const ViolationLogSection = memo(({ violationLogs }: { violationLogs: any[] }) => {
+  return (
+    <div className="violation-log-section" style={{ padding: 0 }}>
+      <div className="section-header">
+        <span className="section-header-title">
+          <Icon.Alert />
+          &nbsp;Lịch sử vi phạm ({violationLogs.length})
+        </span>
+        <div className="section-header-line" />
+      </div>
+
+      <div className="violation-log-list">
+        {violationLogs.length === 0 ? (
+          <div className="violation-log-empty">
+            Chưa có lỗi vi phạm nào được ghi nhận
+          </div>
+        ) : (
+          violationLogs.map(log => (
+            <div key={log.id} className="violation-log-item">
+              <span className="violation-log-label">{log.label}</span>
+              <div className="violation-log-right">
+                <span className="violation-log-points">-{log.points}đ</span>
+                <span className="violation-log-time">
+                  {new Date(log.timestamp).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+});
+
+// ==========================================
+// COMPONENT: ControlPadSection (Memoized)
+// ==========================================
+const ControlPadSection = memo(({
+  currentStage,
+  candidateId,
+  startExam,
+  endExam,
+  triggerPass,
+  triggerCommand,
+  resetExam
+}: {
+  currentStage: ExamStage;
+  candidateId: string;
+  startExam: () => void;
+  endExam: () => void;
+  triggerPass: () => void;
+  triggerCommand: (text: string) => void;
+  resetExam: () => void;
+}) => {
+  return (
+    <div>
+      <div className="section-header">
+        <span className="section-header-title">Điều khiển bài thi</span>
+        <div className="section-header-line" />
+      </div>
+
+      <div className="exam-grid">
+        {/* Nút Xuất phát */}
+        <button
+          id="btn-start-exam"
+          className="btn-exam btn-start"
+          onClick={startExam}
+          disabled={currentStage !== 'idle' || !candidateId.trim()}
+          aria-label="Bắt đầu bài thi - phát âm thanh Bính Boong"
+        >
+          <div className="btn-icon"><Icon.Play /></div>
+          <div className="btn-label">Xuất phát</div>
+          <div className="btn-sublabel">Bính Boong ▸ Giọng nói</div>
+        </button>
+
+        {/* Nút Kết thúc */}
+        <button
+          id="btn-end-exam"
+          className="btn-exam btn-end"
+          onClick={endExam}
+          disabled={currentStage !== 'running'}
+          aria-label="Kết thúc bài thi"
+        >
+          <div className="btn-icon"><Icon.Stop /></div>
+          <div className="btn-label">Kết thúc</div>
+          <div className="btn-sublabel">Tổng kết điểm</div>
+        </button>
+
+        {/* Nút Qua bài - Đánh dấu hoàn thành một bài nhỏ */}
+        <button
+          id="btn-pass-stage"
+          className="btn-exam col-span-2"
+          onClick={triggerPass}
+          disabled={currentStage !== 'running'}
+          aria-label="Qua bài - phát âm thanh Tu"
+          style={{ borderColor: 'rgba(168,85,247,0.4)', backgroundColor: 'rgba(168,85,247,0.12)', color: '#d8b4fe' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon.CheckCircle />
+            <span className="btn-label" style={{ color: '#d8b4fe' }}>Qua bài</span>
+          </div>
+          <div className="btn-sublabel" style={{ color: '#e9d5ff' }}>Âm thanh Tu</div>
+        </button>
+
+        {/* Nút Tăng số */}
+        <button
+          id="btn-gear-up"
+          className="btn-exam"
+          onClick={() => triggerCommand('Tăng số, tăng tốc độ')}
+          disabled={currentStage !== 'running'}
+          aria-label="Lệnh tăng số"
+        >
+          <div className="btn-icon"><Icon.ArrowUp /></div>
+          <div className="btn-label">Tăng số</div>
+        </button>
+
+        {/* Nút Giảm số */}
+        <button
+          id="btn-gear-down"
+          className="btn-exam"
+          onClick={() => triggerCommand('Giảm số, giảm tốc độ')}
+          disabled={currentStage !== 'running'}
+          aria-label="Lệnh giảm số"
+        >
+          <div className="btn-icon"><Icon.ArrowDown /></div>
+          <div className="btn-label">Giảm số</div>
+        </button>
+
+        {/* Nút Reset - Full width */}
+        <button
+          id="btn-reset-exam"
+          className="btn-exam col-span-2"
+          onClick={resetExam}
+          disabled={currentStage === 'running'}
+          aria-label="Đặt lại bài thi"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon.Reset />
+            <span className="btn-label">Bài thi mới</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// ==========================================
 // COMPONENT CHÍNH: App
 // ==========================================
 export default function App() {
@@ -211,7 +394,7 @@ export default function App() {
         </div>
         <span className={`header-badge ${exam.currentStage === 'running' ? 'active' : ''}`}>
           {exam.currentStage === 'running' ? '● ĐANG THI' :
-           exam.currentStage === 'finished' ? '✓ XONG' : 'CHỜ'}
+            exam.currentStage === 'finished' ? '✓ XONG' : 'CHỜ'}
         </span>
       </header>
 
@@ -283,8 +466,8 @@ export default function App() {
           {exam.currentStage === 'finished' && (
             <div className={`result-banner ${exam.isPassed ? 'passed' : 'failed'}`}>
               {exam.isPassed
-                ? '🏆 CHÚC MỪNG! BẠN ĐÃ ĐẠT'
-                : '❌ BẠN THI KHÔNG ĐẠT - Cố gắng hơn!'}
+                ? '🏆 CHÚC MỪNG! BẠN ĐÃ THI ĐẠT'
+                : '❌ BẠN ĐÃ THI TRƯỢT. MỜI BẠN ĐƯA XE VỀ NƠI ĐỖ VÀ CHUẨN BỊ CHO KỲ THI LẦN SAU!'}
             </div>
           )}
         </div>
@@ -293,153 +476,21 @@ export default function App() {
       {/* ===== CONTROL PAD: CÁC HÀNH ĐỘNG BÀI THI ===== */}
       <section className="control-section">
         {/* -- Khu vực 1: Grid 2 cột - Bài thi chính (Blue) -- */}
-        <div>
-          <div className="section-header">
-            <span className="section-header-title">Điều khiển bài thi</span>
-            <div className="section-header-line" />
-          </div>
-
-          <div className="exam-grid">
-            {/* Nút Xuất phát */}
-            <button
-              id="btn-start-exam"
-              className="btn-exam btn-start"
-              onClick={exam.startExam}
-              disabled={exam.currentStage !== 'idle' || !exam.candidateId.trim()}
-              aria-label="Bắt đầu bài thi - phát âm thanh Bính Boong"
-            >
-              <div className="btn-icon"><Icon.Play /></div>
-              <div className="btn-label">Xuất phát</div>
-              <div className="btn-sublabel">Bính Boong ▸ Giọng nói</div>
-            </button>
-
-            {/* Nút Kết thúc */}
-            <button
-              id="btn-end-exam"
-              className="btn-exam btn-end"
-              onClick={exam.endExam}
-              disabled={exam.currentStage !== 'running'}
-              aria-label="Kết thúc bài thi"
-            >
-              <div className="btn-icon"><Icon.Stop /></div>
-              <div className="btn-label">Kết thúc</div>
-              <div className="btn-sublabel">Tổng kết điểm</div>
-            </button>
-
-            {/* Nút Qua bài - Đánh dấu hoàn thành một bài nhỏ */}
-            <button
-              id="btn-pass-stage"
-              className="btn-exam col-span-2"
-              onClick={exam.triggerPass}
-              disabled={exam.currentStage !== 'running'}
-              aria-label="Qua bài - phát âm thanh Tu"
-              style={{ borderColor: 'rgba(168,85,247,0.4)', backgroundColor: 'rgba(168,85,247,0.12)', color: '#d8b4fe' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon.CheckCircle />
-                <span className="btn-label" style={{ color: '#d8b4fe' }}>Qua bài</span>
-              </div>
-              <div className="btn-sublabel" style={{ color: '#e9d5ff' }}>Âm thanh Tu</div>
-            </button>
-
-            {/* Nút Tăng số */}
-            <button
-              id="btn-gear-up"
-              className="btn-exam"
-              onClick={() => exam.triggerCommand('Tăng số')}
-              disabled={exam.currentStage !== 'running'}
-              aria-label="Lệnh tăng số"
-            >
-              <div className="btn-icon"><Icon.ArrowUp /></div>
-              <div className="btn-label">Tăng số</div>
-            </button>
-
-            {/* Nút Giảm số */}
-            <button
-              id="btn-gear-down"
-              className="btn-exam"
-              onClick={() => exam.triggerCommand('Giảm số')}
-              disabled={exam.currentStage !== 'running'}
-              aria-label="Lệnh giảm số"
-            >
-              <div className="btn-icon"><Icon.ArrowDown /></div>
-              <div className="btn-label">Giảm số</div>
-            </button>
-
-            {/* Nút Reset - Full width */}
-            <button
-              id="btn-reset-exam"
-              className="btn-exam col-span-2"
-              onClick={exam.resetExam}
-              disabled={exam.currentStage === 'running'}
-              aria-label="Đặt lại bài thi"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon.Reset />
-                <span className="btn-label">Bài thi mới</span>
-              </div>
-            </button>
-          </div>
-        </div>
+        <ControlPadSection
+          currentStage={exam.currentStage}
+          candidateId={exam.candidateId}
+          startExam={exam.startExam}
+          endExam={exam.endExam}
+          triggerPass={exam.triggerPass}
+          triggerCommand={exam.triggerCommand}
+          resetExam={exam.resetExam}
+        />
 
         {/* -- Khu vực 2: Grid 3 cột - Nút lỗi (White/Border Red) -- */}
-        <div>
-          <div className="section-header">
-            <span className="section-header-title">Ghi nhận lỗi vi phạm</span>
-            <div className="section-header-line" />
-          </div>
-
-          <div className="error-grid">
-            {ERROR_BUTTONS.map(btn => (
-              <button
-                key={btn.id}
-                id={`btn-error-${btn.id}`}
-                className="btn-error"
-                onClick={() => exam.triggerError(btn.points, btn.label)}
-                disabled={exam.currentStage !== 'running'}
-                aria-label={`Lỗi: ${btn.label} - trừ ${btn.points} điểm`}
-              >
-                <span>{btn.shortLabel || btn.label}</span>
-                <span className="btn-error-points">-{btn.points}đ</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ErrorGridSection currentStage={exam.currentStage} triggerError={exam.triggerError} />
 
         {/* -- Khu vực 3: Log vi phạm -- */}
-        <div className="violation-log-section" style={{ padding: 0 }}>
-          <div className="section-header">
-            <span className="section-header-title">
-              <Icon.Alert />
-              &nbsp;Lịch sử vi phạm ({exam.violationLogs.length})
-            </span>
-            <div className="section-header-line" />
-          </div>
-
-          <div className="violation-log-list">
-            {exam.violationLogs.length === 0 ? (
-              <div className="violation-log-empty">
-                Chưa có lỗi vi phạm nào được ghi nhận
-              </div>
-            ) : (
-              exam.violationLogs.map(log => (
-                <div key={log.id} className="violation-log-item">
-                  <span className="violation-log-label">{log.label}</span>
-                  <div className="violation-log-right">
-                    <span className="violation-log-points">-{log.points}đ</span>
-                    <span className="violation-log-time">
-                      {new Date(log.timestamp).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <ViolationLogSection violationLogs={exam.violationLogs} />
 
         {/* Safe area bottom */}
         <div className="safe-bottom" style={{ height: 16 }} />

@@ -88,7 +88,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     if (currentStage === 'running') {
       // Bắt đầu đếm khi stage = running
       timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+        setElapsedTime((prev: number) => prev + 1);
       }, 1000);
     } else {
       // Dừng đếm khi idle hoặc finished
@@ -106,6 +106,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     };
   }, [currentStage]);
 
+
   // ==========================================
   // ACTION: Bắt đầu thi
   // ==========================================
@@ -118,7 +119,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     // Phát âm "Bính Boong" trước, rồi đọc lệnh
     onPlayStart?.();
     setTimeout(() => {
-      onSpeak?.('Bắt đầu bài thi đường trường');
+      onSpeak?.('Bắt đầu thi');
     }, 800); // Delay 800ms để Bính Boong phát xong
   }, [currentStage, onPlayStart, onSpeak]);
 
@@ -132,7 +133,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
 
     // Tính điểm và đọc kết quả
     // Sử dụng functional update để lấy score mới nhất
-    setScore(prevScore => {
+    setScore((prevScore: number) => {
       const passed = prevScore >= EXAM_CONFIG.PASS_SCORE;
       const resultText = passed
         ? `Chúc mừng bạn đã thi đạt. Số điểm của bạn là ${prevScore} điểm.`
@@ -146,6 +147,20 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
       return prevScore; // Không thay đổi score
     });
   }, [currentStage, onSpeak]);
+
+  // ==========================================
+  // AUTO FAIL: Kết thúc bài thi ngay nếu điểm < 80
+  // ==========================================
+  useEffect(() => {
+    if (currentStage === 'running' && score < EXAM_CONFIG.PASS_SCORE) {
+      // Dùng một timeout nhỏ để đảm bảo âm thanh lỗi vi phạm phát trước,
+      // sau đó âm thanh trượt sẽ đè lên hoặc nối tiếp (bằng priority)
+      const timeout = setTimeout(() => {
+        endExam();
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [score, currentStage, endExam]);
 
   // ==========================================
   // ACTION: Ghi nhận lỗi vi phạm - CORE FUNCTION
@@ -172,7 +187,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
     isProcessingError.current = true;
 
     // 1. Trừ điểm ngay lập tức (không âm)
-    setScore(prevScore => Math.max(EXAM_CONFIG.MIN_SCORE, prevScore - points));
+    setScore((prevScore: number) => Math.max(EXAM_CONFIG.MIN_SCORE, prevScore - points));
 
     // 2. Phát âm thanh tên lỗi (priority: ngắt âm thanh đang phát)
     onSpeak?.(label, true);
@@ -187,7 +202,7 @@ export function useDrivingExam(options: UseDrivingExamOptions = {}): UseDrivingE
       points,
       timestamp: Date.now(),
     };
-    setViolationLogs(prev => [newLog, ...prev]); // Thêm vào đầu danh sách (mới nhất trên cùng)
+    setViolationLogs((prev: ViolationLog[]) => [newLog, ...prev]); // Thêm vào đầu danh sách (mới nhất trên cùng)
 
     // Giải phóng guard sau 500ms
     setTimeout(() => {

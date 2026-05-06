@@ -79,21 +79,26 @@ export const EXAM_CONFIG = {
 } as const;
 
 // ==========================================
-// DANH SÁCH LỖI PHỔ BIẾN (12 LỖI CHUẨN)
+// DANH SÁCH LỖI PHỔ BIẾN (DỰA TRÊN INFOGRAPHIC THỰC TẾ)
 // ==========================================
 export const ERROR_BUTTONS: ErrorButton[] = [
-  { id: 'err_seatbelt',    label: 'Không thắt dây an toàn', shortLabel: 'Dây an toàn', points: 5 },
-  { id: 'err_handbrake',   label: 'Quên nhả phanh tay',     shortLabel: 'Phanh tay',   points: 5 },
-  { id: 'err_signal',      label: 'Không bật xi nhan',       shortLabel: 'Xi nhan',     points: 5 },
-  { id: 'err_stall',       label: 'Chết máy',                shortLabel: 'Chết máy',    points: 5 },
-  { id: 'err_horn',        label: 'Bấm còi (Tun)',           shortLabel: 'Tun',         points: 5 },
-  { id: 'err_speed',       label: 'Quá tốc độ',              shortLabel: 'Quá tốc',     points: 10 },
-  { id: 'err_lane',        label: 'Lấn làn đường',           shortLabel: 'Lấn làn',     points: 10 },
-  { id: 'err_stop_sign',   label: 'Không dừng tại vạch',     shortLabel: 'Vạch dừng',   points: 10 },
-  { id: 'err_mirror',      label: 'Không quan sát gương',    shortLabel: 'Gương chiếu', points: 5 },
-  { id: 'err_gear',        label: 'Nhầm số',                 shortLabel: 'Nhầm số',     points: 5 },
-  { id: 'err_clutch',      label: 'Nhả ly hợp đột ngột',     shortLabel: 'Ly hợp',      points: 5 },
-  { id: 'err_distance',    label: 'Không giữ khoảng cách',   shortLabel: 'Khoảng cách', points: 5 },
+  // Phần 1 & 3: Cơ bản & Kỹ năng
+  { id: 'err_seatbelt',    label: 'Không thắt dây an toàn',       shortLabel: 'Dây an toàn', points: 5 },
+  { id: 'err_signal',      label: 'Không bật xi nhan',             shortLabel: 'Xi nhan',     points: 5 },
+  { id: 'err_stall',       label: 'Chết máy',                      shortLabel: 'Chết máy',    points: 5 },
+  { id: 'err_gear',        label: 'Nhầm số',                       shortLabel: 'Nhầm số',     points: 5 },
+  
+  // Vi phạm điển hình (-10đ theo Infographic)
+  { id: 'err_observe_start', label: 'Không quan sát khi xuất phát', shortLabel: 'Ko Q.Sát XP', points: 10 },
+  { id: 'err_parking',       label: 'Dừng, đỗ xe sai quy định',     shortLabel: 'Dừng đỗ sai', points: 10 },
+  { id: 'err_signs',         label: 'Không chấp hành biển báo cấm', shortLabel: 'Biển báo',    points: 10 },
+  { id: 'err_speed',         label: 'Chạy quá tốc độ quy định',     shortLabel: 'Quá tốc độ',  points: 10 },
+
+  // Phần 2 & 4: Giao thông & Xử lý tình huống
+  { id: 'err_lane',          label: 'Đè vạch, lấn làn đường',       shortLabel: 'Lấn làn',     points: 10 },
+  { id: 'err_police',        label: 'Không chấp hành hiệu lệnh',    shortLabel: 'Hiệu lệnh',   points: 10 },
+  { id: 'err_yield',         label: 'Không nhường đường',           shortLabel: 'Nhường đường',points: 10 },
+  { id: 'err_hazard',        label: 'Xử lý tình huống kém',         shortLabel: 'Xử lý kém',   points: 10 },
 ];
 
 // ==========================================
@@ -110,13 +115,13 @@ export const EXAM_ACTIONS: ExamAction[] = [
     id: 'action_gear_up',
     label: 'Tăng số',
     type: 'command',
-    audioText: 'Tăng số',
+    audioText: 'Tăng số, tăng tốc độ',
   },
   {
     id: 'action_gear_down',
     label: 'Giảm số',
     type: 'command',
-    audioText: 'Giảm số',
+    audioText: 'Giảm số, giảm tốc độ',
   },
   {
     id: 'action_end',
